@@ -111,24 +111,44 @@ function applySvgHighlights(
   const nonWsChars = chars.filter(c => !/\s/.test(c.char));
   const fullTextNoWs = nonWsChars.map(c => c.char).join('').normalize('NFC');
 
+  // 동일 원문이 여러 오류에 등장할 때 각각 고유한 문서 위치를 매핑하기 위해
+  // 이미 사용된 구간(usedRanges)을 추적한다.
+  const usedRanges: { start: number; end: number }[] = [];
+  const usedRangesNoWs: { start: number; end: number }[] = [];
+
+  function findNextIndex(haystack: string, needle: string, used: { start: number; end: number }[]): number {
+    let from = 0;
+    while (true) {
+      const idx = haystack.indexOf(needle, from);
+      if (idx === -1) return -1;
+      const end = idx + needle.length;
+      // 이미 사용된 구간과 겹치는지 확인
+      const overlaps = used.some(r => idx < r.end && end > r.start);
+      if (!overlaps) return idx;
+      from = idx + 1;
+    }
+  }
+
   for (const err of errors) {
     const color = CATEGORY_COLORS[err.category] ?? '#888';
     const normOrig = err.original.normalize('NFC');
 
-    // 1차: 공백 포함 정확 매칭
+    // 1차: 공백 포함 정확 매칭 (이미 사용된 위치는 건너뜀)
     let matchChars: { char: string; el: Element }[];
-    const exactIdx = fullText.indexOf(normOrig);
+    const exactIdx = findNextIndex(fullText, normOrig, usedRanges);
     if (exactIdx !== -1) {
       matchChars = chars.slice(exactIdx, exactIdx + normOrig.length);
       positionMap.set(err.id, exactIdx);
+      usedRanges.push({ start: exactIdx, end: exactIdx + normOrig.length });
     } else {
       // 2차 폴백: HWP SVG에서 공백이 좌표 오프셋으로만 표현되는 경우
       const normOrigNoWs = normOrig.replace(/\s+/g, '');
       if (!normOrigNoWs) continue;
-      const wsIdx = fullTextNoWs.indexOf(normOrigNoWs);
+      const wsIdx = findNextIndex(fullTextNoWs, normOrigNoWs, usedRangesNoWs);
       if (wsIdx === -1) continue;
       matchChars = nonWsChars.slice(wsIdx, wsIdx + normOrigNoWs.length);
       positionMap.set(err.id, wsIdx);
+      usedRangesNoWs.push({ start: wsIdx, end: wsIdx + normOrigNoWs.length });
     }
 
     const matched = new Set<Element>(matchChars.map(c => c.el));
@@ -238,21 +258,40 @@ function applyHtmlHighlights(
   type R = { node: Text; start: number; end: number; errorId: number; color: string };
   const allRanges: R[] = [];
 
+  // 동일 원문이 여러 오류에 등장할 때 각각 고유한 문서 위치를 매핑하기 위해
+  // 이미 사용된 구간(usedRanges)을 추적한다.
+  const usedRanges: { start: number; end: number }[] = [];
+  const usedRangesNoWs: { start: number; end: number }[] = [];
+
+  function findNextIndex(haystack: string, needle: string, used: { start: number; end: number }[]): number {
+    let from = 0;
+    while (true) {
+      const idx = haystack.indexOf(needle, from);
+      if (idx === -1) return -1;
+      const end = idx + needle.length;
+      const overlaps = used.some(r => idx < r.end && end > r.start);
+      if (!overlaps) return idx;
+      from = idx + 1;
+    }
+  }
+
   for (const err of errors) {
     const color = CATEGORY_COLORS[err.category] ?? '#888';
     const normOrig = err.original.normalize('NFC');
     let matched: CharRef[];
-    const idx = fullText.indexOf(normOrig);
+    const idx = findNextIndex(fullText, normOrig, usedRanges);
     if (idx !== -1) {
       matched = chars.slice(idx, idx + normOrig.length);
       positionMap.set(err.id, idx);
+      usedRanges.push({ start: idx, end: idx + normOrig.length });
     } else {
       const noWs = normOrig.replace(/\s+/g, '');
       if (!noWs) continue;
-      const idx2 = fullNoWs.indexOf(noWs);
+      const idx2 = findNextIndex(fullNoWs, noWs, usedRangesNoWs);
       if (idx2 === -1) continue;
       matched = nonWs.slice(idx2, idx2 + noWs.length);
       positionMap.set(err.id, idx2);
+      usedRangesNoWs.push({ start: idx2, end: idx2 + noWs.length });
     }
     // 같은 text node 안에서 연속된 offset 구간으로 묶기
     let i = 0;
