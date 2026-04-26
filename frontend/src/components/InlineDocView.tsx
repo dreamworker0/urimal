@@ -381,6 +381,7 @@ async function renderPdfPages(
   isCanceled: () => boolean,
   onPageRendered: (pageDiv: HTMLElement, pageNum: number) => void,
   registerCleanup: (fn: () => void) => void,
+  onPageTexts: (texts: { pageNum: number; text: string }[]) => void,
 ): Promise<number> {
   const pdf = await pdfjsLib.getDocument({ data: new Uint8Array(buffer) }).promise;
   if (isCanceled()) { pdf.destroy(); return 0; }
@@ -416,6 +417,23 @@ async function renderPdfPages(
   }
 
   if (isCanceled()) { pdf.destroy(); return 0; }
+
+  // 모든 페이지의 텍스트를 미리 추출 (canvas 렌더 없이 가벼움)
+  // 이를 통해 오류가 어느 페이지에 있는지 DOM 렌더 전에 알 수 있다.
+  const pageTexts: { pageNum: number; text: string }[] = [];
+  for (let i = 1; i <= totalPages; i++) {
+    if (isCanceled()) { pdf.destroy(); return 0; }
+    try {
+      const pg = await pdf.getPage(i);
+      const tc = await pg.getTextContent();
+      const text = tc.items.map((item: any) => item.str ?? '').join('');
+      pageTexts.push({ pageNum: i, text });
+      pg.cleanup();
+    } catch {
+      pageTexts.push({ pageNum: i, text: '' });
+    }
+  }
+  if (!isCanceled()) onPageTexts(pageTexts);
 
   const renderedOrPending = new Set<number>();
 
@@ -555,6 +573,12 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
 
   // PDF 페이지가 렌더될 때마다 ErrorPanel 정렬을 갱신 — 다발 호출 방지용 debounce
   const pdfEmitTimerRef = useRef<number | null>(null);
+  // PDF 각 페이지의 텍스트를 미리 추출해 오류가 어느 페이지에 있는지 찾는 데 사용
+  const pdfPageTextsRef = useRef<{ pageNum: number; text: string }[]>([]);
+  // lazy 렌더 안 된 페이지의 오류를 클릭했을 때, 렌더 완료 후 재스크롤하기 위한 대기 ID
+  const pendingActiveScrollRef = useRef<number | null>(null);
+  const zoomLevelRef = useRef(zoomLevel);
+  zoomLevelRef.current = zoomLevel;
   const schedulePdfEmit = () => {
     if (pdfEmitTimerRef.current != null) return;
     pdfEmitTimerRef.current = window.setTimeout(() => {
@@ -584,6 +608,8 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
     // 이전 effect 의 cleanup 이 이미 PDF observer 를 끊고 pdf.destroy 를 호출했지만,
     // 새 파일에 대비해 누적 positionMap 만 초기화한다.
     pdfPositionMapRef.current = new Map();
+    pdfPageTextsRef.current = [];
+    pendingActiveScrollRef.current = null;
 
     if (mode === 'idle') {
       setRenderError('지원하지 않는 파일 형식입니다.');
@@ -645,6 +671,26 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
               }
             }
             schedulePdfEmit();
+
+            // 대기 중인 스크롤이 이 페이지에 해당하면 실행
+            const pendingId = pendingActiveScrollRef.current;
+            if (pendingId != null) {
+              const el = pageDiv.querySelector<HTMLElement>(`[data-error-id="${pendingId}"]`);
+              if (el) {
+                pendingActiveScrollRef.current = null;
+                el.classList.add('active');
+                requestAnimationFrame(() => {
+                  const body = bodyRef.current;
+                  if (!body) return;
+                  const zoom = zoomLevelRef.current;
+                  const elRect = el.getBoundingClientRect();
+                  const cRect = body.getBoundingClientRect();
+                  const scrollOffset = (elRect.top - cRect.top) / zoom;
+                  const target = body.scrollTop + scrollOffset - body.clientHeight / 2 + elRect.height / (2 * zoom);
+                  body.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+                });
+              }
+            }
           };
           const registerCleanup = (fn: () => void) => {
             if (isCanceled()) {
@@ -660,6 +706,7 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
             isCanceled,
             onPageRendered,
             registerCleanup,
+            (texts) => { pdfPageTextsRef.current = texts; },
           );
           if (isCanceled()) host.innerHTML = '';
           else setTotalPages(pages);
@@ -748,6 +795,7 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
     container.querySelectorAll<HTMLElement>('span.urimal-error.active').forEach(el => {
       el.classList.remove('active');
     });
+    pendingActiveScrollRef.current = null;
 
     if (activeId == null) return;
 
@@ -765,6 +813,41 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
       targetEls = Array.from(
         container.querySelectorAll<HTMLElement>(`span.urimal-error[data-error-id="${activeId}"]`)
       );
+    }
+
+    // PDF 모드에서 요소를 못 찾으면: 아직 렌더 안 된 페이지에 있을 수 있음
+    if (targetEls.length === 0 && renderMode === 'pdf') {
+      const err = errors.find(e => e.id === activeId);
+      if (err) {
+        // pdfPageTextsRef에서 해당 오류의 original이 있는 페이지를 찾기
+        const normOrig = err.original.normalize('NFC');
+        const normOrigNoWs = normOrig.replace(/\s+/g, '');
+        let targetPageNum = -1;
+        for (const { pageNum, text } of pdfPageTextsRef.current) {
+          const normText = text.normalize('NFC');
+          if (normText.includes(normOrig) || normText.replace(/\s+/g, '').includes(normOrigNoWs)) {
+            targetPageNum = pageNum;
+            break;
+          }
+        }
+        if (targetPageNum > 0) {
+          // 해당 페이지 placeholder로 스크롤 → IntersectionObserver가 렌더 트리거
+          const host = externalHostRef.current;
+          const pageDiv = host?.querySelector<HTMLElement>(`.pdf-page[data-page-num="${targetPageNum}"]`);
+          if (pageDiv) {
+            pendingActiveScrollRef.current = activeId;
+            const zoom = zoomLevel;
+            const pdRect = pageDiv.getBoundingClientRect();
+            const cRect = container.getBoundingClientRect();
+            const scrollOffset = (pdRect.top - cRect.top) / zoom;
+            const target = container.scrollTop + scrollOffset - container.clientHeight / 3;
+            container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
+          }
+        } else {
+          console.warn('[InlineDocView] activeId', activeId, '에 해당하는 텍스트를 어떤 페이지에서도 찾지 못했습니다.');
+        }
+      }
+      return;
     }
 
     if (targetEls.length === 0) {
@@ -803,14 +886,33 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
       targetEls.forEach(el => (el as HTMLElement).classList.add('active'));
     }
 
-    // 스크롤: SVG/HTML 모두 getBoundingClientRect 기반으로 동일 처리
+    // 스크롤: 정확한 좌표 측정을 위한 전처리
     const first = targetEls[0] as HTMLElement | SVGGraphicsElement;
+
+    // HWP: content-visibility: auto 일시 해제 → 정확한 좌표 측정
+    let hwpPage: HTMLElement | null = null;
+    if (renderMode === 'hwp') {
+      hwpPage = (first as HTMLElement).closest?.('.hwp-page') as HTMLElement | null;
+      if (hwpPage) {
+        hwpPage.style.contentVisibility = 'visible';
+      }
+    }
+
+    // PDF: zoom(scale)이 적용되어 있으므로 좌표 보정 필요
+    const zoom = renderMode === 'pdf' ? zoomLevel : 1;
     const elRect = first.getBoundingClientRect();
     const cRect = container.getBoundingClientRect();
-    const target =
-      container.scrollTop + (elRect.top - cRect.top) - container.clientHeight / 2 + elRect.height / 2;
-    container.scrollTo({ top: Math.max(0, target), behavior: 'smooth' });
-  }, [activeId, errors, renderMode]);
+    const scrollOffset = (elRect.top - cRect.top) / zoom;
+    const elH = elRect.height / zoom;
+    const scrollTarget =
+      container.scrollTop + scrollOffset - container.clientHeight / 2 + elH / 2;
+    container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
+
+    // HWP: content-visibility 복원
+    if (hwpPage) {
+      setTimeout(() => { hwpPage!.style.contentVisibility = ''; }, 600);
+    }
+  }, [activeId, errors, renderMode, zoomLevel]);
 
   // PDF 현재 페이지 감지 (IntersectionObserver)
   useEffect(() => {

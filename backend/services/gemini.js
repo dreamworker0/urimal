@@ -168,7 +168,8 @@ ${chunkText}
       generationConfig: {
         responseMimeType: 'application/json',
         responseSchema: chunkSchema,
-        temperature: 0.2,
+        temperature: 0,
+        seed: 42,
         maxOutputTokens: CHUNK_MAX_OUTPUT_TOKENS,
       },
     });
