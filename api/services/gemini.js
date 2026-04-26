@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,10 +7,13 @@ import { recoverPartialErrors } from '../utils/jsonRecover.js';
 import { chunkMarkdown } from '../utils/chunker.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REFS_DIR = path.join(
-  __dirname,
-  '../../.agents/skills/im-not-ai-for-socialworker/resources/references'
-);
+
+// 배포 환경(Vercel)에서는 빌드 시 복사해 둔 api/resources 사용
+const deployRefsDir = path.join(__dirname, '..', 'resources');
+// 로컬 환경에서는 원래 위치 사용
+const localRefsDir = path.join(__dirname, '../../.agents/skills/im-not-ai-for-socialworker/resources/references');
+
+const REFS_DIR = existsSync(deployRefsDir) ? deployRefsDir : localRefsDir;
 
 let genAI;
 let taxonomyCache = null;
