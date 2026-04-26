@@ -2,6 +2,8 @@ node_modules
 .env
 .env.*
 .agents
+!.agents/skills/kordoc/scripts/kordoc/dist/
+!.agents/skills/kordoc/scripts/kordoc/package.json
 .claude
 .DS_Store
 dist

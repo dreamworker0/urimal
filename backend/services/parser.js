@@ -6,24 +6,14 @@ import fs from 'fs/promises';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 
-import { createRequire } from 'module';
-
-const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// 우선순위: 환경변수 > node_modules (Vercel 환경 등) > 프로젝트 루트 기준 상대경로
-let KORDOC_PATH = process.env.KORDOC_PATH;
-if (KORDOC_PATH) {
-  KORDOC_PATH = path.resolve(KORDOC_PATH);
-} else {
-  try {
-    // package.json에 등록된 kordoc 로컬 모듈에서 찾기 시도
-    KORDOC_PATH = require.resolve('kordoc/dist/cli.js');
-  } catch (e) {
-    // 로컬 모듈에서 못 찾으면 기본 .agents 경로로 폴백
-    KORDOC_PATH = path.resolve(
+// 우선순위: 환경변수 > 프로젝트 루트 기준 상대경로
+const KORDOC_PATH = process.env.KORDOC_PATH
+  ? path.resolve(process.env.KORDOC_PATH)
+  : path.resolve(
       __dirname,
       '..',
       '..',
@@ -35,8 +25,6 @@ if (KORDOC_PATH) {
       'dist',
       'cli.js'
     );
-  }
-}
 
 /**
  * kordoc CLI를 사용해 HWP/HWPX/DOCX/PDF 파일을 Markdown으로 파싱
