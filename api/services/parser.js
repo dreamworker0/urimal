@@ -74,12 +74,15 @@ export async function parseDocument(fileBuffer, originalName) {
   try {
     await fs.writeFile(tmpInput, fileBuffer);
 
+    const cfbPath = require.resolve('cfb');
+    const nodeModulesRoot = cfbPath.substring(0, cfbPath.lastIndexOf('node_modules') + 12);
+
     const { stdout } = await execFileAsync('node', [KORDOC_PATH, tmpInput], {
       timeout: 90_000, // 90초 — 50페이지 5MB 이하 파일 기준 충분
       maxBuffer: 16 * 1024 * 1024, // 16MB — 5MB 파일이 만드는 markdown 보다 충분히 크게
       env: {
         ...process.env,
-        NODE_PATH: (process.env.NODE_PATH ? process.env.NODE_PATH + path.delimiter : '') + path.resolve(__dirname, '..', '..', 'node_modules')
+        NODE_PATH: (process.env.NODE_PATH ? process.env.NODE_PATH + path.delimiter : '') + nodeModulesRoot
       }
     });
 
