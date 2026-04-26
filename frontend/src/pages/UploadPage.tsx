@@ -75,6 +75,7 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
           <div className="drop-icon">📄</div>
           <p className="drop-title">파일을 여기에 끌어다 놓거나 클릭하세요</p>
           <p className="drop-hint">HWP · HWPX · DOCX · PDF · 최대 30페이지 / 3MB</p>
+          <div className="upload-btn">컴퓨터에서 찾아보기</div>
         </div>
 
           <input
