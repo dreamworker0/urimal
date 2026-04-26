@@ -271,9 +271,10 @@ function applyErrors(originalText, errors) {
  * 큰 문서는 청크로 분할해 병렬 분석 후 병합한다.
  * @param {string} documentText - kordoc으로 파싱된 Markdown 텍스트
  * @param {string} model - Gemini 모델명
+ * @param {Function} [onProgress] - 진행 상태 콜백 (선택)
  * @returns {Promise<{original: string, rewritten: string, errors: Array, stats: object}>}
  */
-export async function analyzeDocument(documentText, model = 'gemini-3-flash-preview') {
+export async function analyzeDocument(documentText, model = 'gemini-3-flash-preview', onProgress) {
   const { taxonomy, playbook } = await loadRefs();
   const modelInstance = getClient().getGenerativeModel({ model });
   const systemPrompt = buildSystemPrompt(taxonomy, playbook);
@@ -284,10 +285,22 @@ export async function analyzeDocument(documentText, model = 'gemini-3-flash-prev
   );
 
   const t0 = Date.now();
+  let completedChunks = 0;
   const chunkResults = await runWithConcurrency(
     chunks,
     CHUNK_CONCURRENCY,
-    (chunk, idx) => analyzeChunk(modelInstance, systemPrompt, chunk, idx, chunks.length)
+    async (chunk, idx) => {
+      const res = await analyzeChunk(modelInstance, systemPrompt, chunk, idx, chunks.length);
+      completedChunks++;
+      if (onProgress) {
+        onProgress({
+          step: 'analyzing',
+          completedChunks,
+          totalChunks: chunks.length,
+        });
+      }
+      return res;
+    }
   );
   const elapsedSec = Math.round((Date.now() - t0) / 1000);
 

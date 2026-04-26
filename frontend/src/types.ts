@@ -25,3 +25,10 @@ export interface AnalyzeResult {
 }
 
 export type AppStep = 'upload' | 'loading' | 'result';
+
+export interface ProgressInfo {
+  step: 'parsing' | 'analyzing' | 'done';
+  completedChunks?: number;
+  totalChunks?: number;
+  message?: string;
+}

@@ -1,8 +1,12 @@
-import type { AnalyzeResult } from '../types';
+import type { AnalyzeResult, ProgressInfo } from '../types';
 
 const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:4000');
 
-export async function analyzeFile(file: File, model: string): Promise<AnalyzeResult> {
+export async function analyzeFile(
+  file: File, 
+  model: string,
+  onProgress?: (info: ProgressInfo) => void
+): Promise<AnalyzeResult> {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('model', model);
@@ -29,5 +33,54 @@ export async function analyzeFile(file: File, model: string): Promise<AnalyzeRes
     throw new Error(err.error || `서버 오류: ${response.status}`);
   }
 
-  return response.json();
+  const reader = response.body?.getReader();
+  if (!reader) {
+    throw new Error('스트림을 읽을 수 없습니다.');
+  }
+
+  const decoder = new TextDecoder('utf-8');
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    
+    // SSE 이벤트는 \n\n 으로 구분됨
+    const parts = buffer.split('\n\n');
+    buffer = parts.pop() || ''; // 불완전한 마지막 조각은 버퍼에 남김
+
+    for (const part of parts) {
+      const line = part.trim();
+      if (!line.startsWith('data: ')) continue;
+      
+      const jsonStr = line.replace(/^data:\s*/, '');
+      try {
+        const payload = JSON.parse(jsonStr);
+        if (payload.type === 'progress') {
+          if (onProgress) {
+            onProgress({
+              step: payload.step,
+              completedChunks: payload.completedChunks,
+              totalChunks: payload.totalChunks,
+            });
+          }
+        } else if (payload.type === 'result') {
+          if (onProgress) onProgress({ step: 'done' });
+          return payload.data;
+        } else if (payload.type === 'error') {
+          throw new Error(payload.error || '서버 분석 중 오류가 발생했습니다.');
+        }
+      } catch (e) {
+        // 서버의 명시적인 에러(type: error)인 경우 즉시 throw
+        if (e instanceof Error && !e.message.includes('JSON')) {
+          throw e;
+        }
+        // 단순 파싱 에러(잘린 조각 등)면 무시하고 다음 진행
+      }
+    }
+  }
+
+  throw new Error('스트림이 결과를 반환하기 전에 종료되었습니다.');
 }

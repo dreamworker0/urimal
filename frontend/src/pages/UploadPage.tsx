@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import { analyzeFile } from '../api/analyze';
-import type { AnalyzeResult } from '../types';
+import type { AnalyzeResult, ProgressInfo } from '../types';
 import './UploadPage.css';
 
 const MODELS = [
@@ -9,6 +9,7 @@ const MODELS = [
 
 interface Props {
   onLoading: () => void;
+  onProgress: (info: ProgressInfo) => void;
   onResult: (data: AnalyzeResult, file: File) => void;
   onError: (msg: string) => void;
   errorMsg: string | null;
@@ -17,7 +18,7 @@ interface Props {
 const ALLOWED_EXT = ['.hwp', '.hwpx', '.docx', '.pdf'];
 const MAX_FILE_BYTES = 3 * 1024 * 1024; // 백엔드 multer 한도와 동기화
 
-export default function UploadPage({ onLoading, onResult, onError, errorMsg }: Props) {
+export default function UploadPage({ onLoading, onProgress, onResult, onError, errorMsg }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const model = MODELS[0].value;
@@ -35,7 +36,7 @@ export default function UploadPage({ onLoading, onResult, onError, errorMsg }: P
     }
     onLoading();
     try {
-      const result = await analyzeFile(file, model);
+      const result = await analyzeFile(file, model, onProgress);
       onResult(result, file);
     } catch (e: unknown) {
       onError(e instanceof Error ? e.message : '알 수 없는 오류');

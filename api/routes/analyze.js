@@ -77,7 +77,7 @@ function handleUpload(req, res, next) {
 
 /**
  * POST /api/analyze
- * 파일 업로드 → 파싱 → Gemini 윤문 → 결과 반환
+ * 파일 업로드 → 파싱 → Gemini 윤문 → 결과 반환 (SSE 스트리밍)
  */
 router.post('/', analyzeLimiter, handleUpload, async (req, res, next) => {
   if (!req.file) {
@@ -85,6 +85,14 @@ router.post('/', analyzeLimiter, handleUpload, async (req, res, next) => {
     err.status = 400;
     return next(err);
   }
+
+  // SSE 스트리밍 헤더 설정
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream; charset=utf-8',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+  });
+  res.flushHeaders();
 
   try {
     const filename = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
@@ -98,10 +106,14 @@ router.post('/', analyzeLimiter, handleUpload, async (req, res, next) => {
     const cachedResult = resultCache.get(cacheKey);
     if (cachedResult) {
       console.log(`[캐시 적중] ${filename} (${req.file.size} bytes)`);
-      return res.json(cachedResult);
+      res.write(`data: ${JSON.stringify({ type: 'result', data: cachedResult })}\n\n`);
+      return res.end();
     }
 
     console.log(`[분석 시작] ${filename} (${req.file.size} bytes)`);
+
+    // 진행 상태 알림: 문서 파싱 시작
+    res.write(`data: ${JSON.stringify({ type: 'progress', step: 'parsing' })}\n\n`);
 
     // 문서 파싱 (kordoc)
     const markdownText = await parseDocument(req.file.buffer, req.file.originalname);
@@ -109,7 +121,7 @@ router.post('/', analyzeLimiter, handleUpload, async (req, res, next) => {
     if (!markdownText || markdownText.trim().length < 10) {
       const err = new Error('문서에서 텍스트를 추출할 수 없습니다.');
       err.status = 422;
-      return next(err);
+      throw err;
     }
 
     // 분량 제한 — 무료 서비스 비용/대기시간 통제
@@ -117,7 +129,7 @@ router.post('/', analyzeLimiter, handleUpload, async (req, res, next) => {
       const estimatedPages = Math.ceil(markdownText.length / CHARS_PER_PAGE);
       const err = new Error(`문서가 너무 깁니다 (약 ${estimatedPages}페이지). ${MAX_PAGES}페이지 이하로 줄여서 다시 시도해 주세요.`);
       err.status = 413;
-      return next(err);
+      throw err;
     }
 
     // Gemini 윤문 분석
@@ -125,7 +137,13 @@ router.post('/', analyzeLimiter, handleUpload, async (req, res, next) => {
       console.warn(`[모델] 허용되지 않은 모델 요청: "${requestedModel}" → "${selectedModel}" 로 대체`);
     }
     console.log(`[모델] ${selectedModel}`);
-    const result = await analyzeDocument(markdownText, selectedModel);
+    
+    // 분석 진행 콜백
+    const onProgress = (info) => {
+      res.write(`data: ${JSON.stringify({ type: 'progress', step: 'analyzing', ...info })}\n\n`);
+    };
+
+    const result = await analyzeDocument(markdownText, selectedModel, onProgress);
 
     console.log(`[분석 완료] 오류 ${result.errors.length}건 탐지`);
 
@@ -136,10 +154,13 @@ router.post('/', analyzeLimiter, handleUpload, async (req, res, next) => {
 
     resultCache.set(cacheKey, responseData);
 
-    res.json(responseData);
+    // 완료 결과 전송
+    res.write(`data: ${JSON.stringify({ type: 'result', data: responseData })}\n\n`);
+    res.end();
   } catch (err) {
     console.error('[분석 오류]', err);
-    next(err);
+    res.write(`data: ${JSON.stringify({ type: 'error', error: err.message || '서버 내부 오류가 발생했습니다.' })}\n\n`);
+    res.end();
   }
 });
 

@@ -1,5 +1,5 @@
 import { useState, Suspense, lazy } from 'react';
-import type { AppStep, AnalyzeResult } from './types';
+import type { AppStep, AnalyzeResult, ProgressInfo } from './types';
 import UploadPage from './pages/UploadPage';
 import LoadingPage from './pages/LoadingPage';
 import './App.css';
@@ -11,6 +11,11 @@ export default function App() {
   const [result, setResult] = useState<AnalyzeResult | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<ProgressInfo | null>(null);
+
+  function handleProgress(info: ProgressInfo) {
+    setProgress(info);
+  }
 
   function handleResult(data: AnalyzeResult, uploadedFile: File) {
     setResult(data);
@@ -25,6 +30,7 @@ export default function App() {
 
   function handleLoading() {
     setError(null);
+    setProgress(null);
     setStep('loading');
   }
 
@@ -32,6 +38,7 @@ export default function App() {
     setResult(null);
     setFile(null);
     setError(null);
+    setProgress(null);
     setStep('upload');
   }
 
@@ -40,12 +47,13 @@ export default function App() {
       {step === 'upload' && (
         <UploadPage
           onLoading={handleLoading}
+          onProgress={handleProgress}
           onResult={handleResult}
           onError={handleError}
           errorMsg={error}
         />
       )}
-      {step === 'loading' && <LoadingPage />}
+      {step === 'loading' && <LoadingPage progress={progress} />}
       {step === 'result' && result && file && (
         <Suspense fallback={<LoadingPage />}>
           <ResultPage result={result} file={file} onReset={handleReset} />
