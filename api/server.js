@@ -19,6 +19,8 @@ app.use(
     origin(origin, cb) {
       // origin 이 없는 요청 = 동일 출처 / curl / 서버-서버 → 허용
       if (!origin) return cb(null, true);
+      // Vercel 배포 도메인 허용
+      if (origin.endsWith('.vercel.app')) return cb(null, true);
       if (allowedOrigins.includes(origin)) return cb(null, true);
       return cb(new Error(`CORS 차단: ${origin}`));
     },
