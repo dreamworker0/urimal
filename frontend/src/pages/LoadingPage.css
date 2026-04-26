@@ -16,8 +16,43 @@
   margin: 0 auto 1.5rem;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
-.loading-card h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: .5rem; }
+.loading-card h2 { font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem; }
 .loading-sub { color: var(--text-muted); font-size: .9rem; margin-bottom: 1.5rem; }
+
+.progress-percent {
+  font-size: 2.4rem;
+  font-weight: 700;
+  color: var(--primary);
+  line-height: 1;
+  margin-bottom: .75rem;
+  font-variant-numeric: tabular-nums;
+}
+.progress-bar-container {
+  width: 100%;
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: .65rem;
+}
+.progress-bar-fill {
+  height: 100%;
+  background: var(--primary);
+  border-radius: 4px;
+  transition: width .4s ease;
+}
+.progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: .85rem;
+  color: var(--text-muted);
+  gap: .75rem;
+  margin-bottom: 1.25rem;
+}
+.progress-elapsed { font-variant-numeric: tabular-nums; }
+.progress-meta-sub { text-align: right; }
+
 .step-list { list-style: none; text-align: left; }
 .step-item {
   display: flex; align-items: center; gap: .75rem;
