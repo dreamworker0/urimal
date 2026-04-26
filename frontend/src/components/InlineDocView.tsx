@@ -391,13 +391,13 @@ async function renderPdfPages(
   // host 폭에 맞춰 scale 산정 (페이지마다 동일 scale 적용; 첫 페이지 기준)
   const firstPage = await pdf.getPage(1);
   const baseViewport = firstPage.getViewport({ scale: 1 });
-  const containerWidth = Math.min(host.clientWidth || 800, 800);
-  const scale = Math.max(0.5, Math.min(2.5, (containerWidth - 4) / baseViewport.width));
+  const containerWidth = Math.min(host.clientWidth || 800, 1200);
+  const scale = Math.max(1.0, Math.min(2.5, (containerWidth - 4) / baseViewport.width));
   firstPage.cleanup();
 
   const baseW = baseViewport.width * scale;
   const baseH = baseViewport.height * scale;
-  const dpr = Math.min(2, window.devicePixelRatio || 1);
+  const dpr = Math.min(3, window.devicePixelRatio || 1);
 
   // 모든 페이지의 placeholder 생성 (스크롤 길이 확정)
   const pageDivs: HTMLDivElement[] = [];
