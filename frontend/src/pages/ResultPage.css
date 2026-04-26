@@ -1,0 +1,45 @@
+.result-page {
+  display: flex; flex-direction: column; height: 100vh;
+  background: var(--bg);
+}
+
+.result-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 1rem 1.5rem; background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.result-header-left { display: flex; align-items: center; gap: 1rem; }
+.btn-back {
+  background: none; border: none; font-size: 1rem; font-weight: 500;
+  color: var(--text-muted); cursor: pointer; padding: .5rem;
+}
+.btn-back:hover { color: var(--text); }
+.result-title { font-size: 1.1rem; font-weight: 700; margin: 0; }
+
+.result-header-right { display: flex; gap: .8rem; }
+.btn-download {
+  padding: .5rem 1rem; border-radius: var(--radius);
+  font-size: .875rem; font-weight: 600; cursor: pointer;
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+}
+.btn-download:hover { background: var(--bg); }
+
+/* Split View Layout */
+.result-main.split-view {
+  flex: 1; display: flex; padding: 1rem;
+  overflow: hidden; /* 자식 요소에서 스크롤 처리 */
+}
+
+.view-left { min-width: 0; padding-right: .5rem; }
+.view-right { min-width: 0; padding-left: .5rem; }
+
+.split-handle {
+  flex: 0 0 6px;
+  cursor: col-resize;
+  background: transparent;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  transition: background-color .15s;
+}
+.split-handle:hover,
+.split-handle:active { background: var(--border); }

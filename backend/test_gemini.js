@@ -1,0 +1,1 @@
+import dotenv from 'dotenv'; dotenv.config(); import { analyzeDocument } from './services/gemini.js'; analyzeDocument('장애청소년이 참여해 주셨습니다. 독서활동을 했다고 좋은 것 같아요.').then(r => console.log(JSON.stringify(r, null, 2))).catch(console.error);

@@ -1,0 +1,71 @@
+.error-panel {
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; height: 100%;
+}
+
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .7rem 1.1rem; background: #f8f5ff;
+  border-bottom: 1px solid var(--border); font-size: .875rem; font-weight: 600;
+}
+.panel-count {
+  background: #7c3aed; color: #fff;
+  border-radius: 20px; padding: .15rem .65rem; font-size: .78rem;
+}
+
+.panel-empty {
+  padding: 2rem; color: var(--text-muted); text-align: center;
+}
+.rewritten-label { font-weight: 600; margin-top: 1.5rem; text-align: left; }
+.rewritten-text {
+  white-space: pre-wrap; font-family: inherit;
+  font-size: .88rem; line-height: 1.8; text-align: left; margin-top: .5rem;
+}
+
+.panel-list { list-style: none; overflow-y: auto; flex: 1; }
+
+.panel-item {
+  padding: .9rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background .12s;
+  border-left: 3px solid transparent;
+}
+.panel-item:hover { background: var(--bg); }
+.panel-item.active {
+  background: color-mix(in srgb, var(--item-color, #888) 6%, white);
+  border-left-color: var(--item-color, #888);
+}
+
+.item-header {
+  display: flex; align-items: center; gap: .5rem; margin-bottom: .55rem;
+}
+.item-badge {
+  color: #fff; border-radius: 5px; padding: .15rem .5rem;
+  font-size: .75rem; font-weight: 700;
+}
+.item-name { font-size: .875rem; font-weight: 600; flex: 1; }
+.item-sev {
+  border-radius: 20px; padding: .12rem .55rem; font-size: .75rem; font-weight: 600;
+}
+.sev-s1 { background: #fee2e2; color: #dc2626; }
+.sev-s2 { background: #fef3c7; color: #d97706; }
+.sev-s3 { background: #f0fdf4; color: #16a34a; }
+
+.item-row {
+  display: flex; align-items: baseline; gap: .6rem;
+  font-size: .875rem; margin-bottom: .35rem;
+}
+.item-label {
+  min-width: 55px; font-size: .78rem; color: var(--text-muted); font-weight: 600;
+}
+.item-original .underline-text {
+  border-bottom: 2px solid currentColor;
+  padding-bottom: 1px; color: inherit;
+}
+.item-suggestion { color: #15803d; font-weight: 500; }
+.item-help {
+  margin-top: .4rem; font-size: .82rem; color: var(--text-muted);
+  background: var(--bg); border-radius: 6px; padding: .4rem .7rem; line-height: 1.5;
+}

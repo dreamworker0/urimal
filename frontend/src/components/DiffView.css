@@ -1,0 +1,22 @@
+.diff-view {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 1.5rem; height: calc(100vh - 160px);
+}
+@media (max-width: 700px) { .diff-view { grid-template-columns: 1fr; } }
+
+.diff-panel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.diff-panel-header {
+  padding: .75rem 1rem; font-size: .875rem; font-weight: 600;
+  border-bottom: 1px solid var(--border);
+}
+.diff-panel-header.original { background: #fef3c7; color: #92400e; }
+.diff-panel-header.rewritten { background: #dcfce7; color: #166534; }
+.diff-content {
+  padding: 1.25rem; flex: 1; overflow-y: auto;
+  white-space: pre-wrap; word-break: break-word;
+  font-family: 'Noto Sans KR', sans-serif; font-size: .9rem; line-height: 1.8;
+}

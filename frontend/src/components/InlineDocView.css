@@ -1,0 +1,175 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&family=Noto+Serif+KR:wght@400;700&family=Nanum+Gothic&family=Nanum+Myeongjo&display=swap');
+
+.inline-doc {
+  display: flex; flex-direction: column;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; height: 100%;
+}
+.inline-doc-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: .7rem 1.1rem; background: #fef9ee;
+  border-bottom: 1px solid var(--border); font-size: .875rem; font-weight: 600;
+}
+.inline-doc-hint { font-size: .78rem; color: var(--text-muted); font-weight: 400; }
+
+.inline-doc-body {
+  flex: 1; overflow: auto; padding: 1.4rem 1.5rem;
+  font-size: .95rem; line-height: 2; white-space: pre-wrap; word-break: break-word;
+}
+
+.hwp-page svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 화면 밖 페이지는 렌더를 건너뛰어 스크롤 성능 향상.
+   contain-intrinsic-size 의 auto 키워드는 한 번 렌더된 후의 실제 크기를 기억하고,
+   미렌더 페이지에는 1100px 플레이스홀더를 사용한다. */
+.hwp-page,
+.hwp-page-image,
+.external-render-host .docx-wrapper > section.docx,
+.external-render-host .pdf-page {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1100px;
+}
+
+mark.error-mark {
+  background: transparent;
+  border-bottom: 2.5px solid var(--mark-color, #e74c3c);
+  color: var(--mark-color, #e74c3c);
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 2px;
+  padding: 0 1px;
+  transition: background .15s;
+}
+mark.error-mark:hover,
+mark.error-mark.active {
+  background: color-mix(in srgb, var(--mark-color, #e74c3c) 12%, transparent);
+}
+
+/* HTML 모드(DOCX/PDF) 하이라이트 wrapper */
+.urimal-error {
+  --err-color: #888;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background .15s;
+}
+/* DOCX: 본문 텍스트가 보이므로 색상/밑줄로 표시 */
+.urimal-error.mode-docx {
+  color: var(--err-color);
+  font-weight: 500;
+  border-bottom: 2px solid var(--err-color);
+}
+.urimal-error.mode-docx:hover {
+  background: color-mix(in srgb, var(--err-color) 14%, transparent);
+}
+.urimal-error.mode-docx.active {
+  background: rgba(231, 76, 60, 0.35);
+}
+/* PDF: pdfjs textLayer 의 span 들은 color: transparent 라 background 만으로 표시 */
+.urimal-error.mode-pdf {
+  background: color-mix(in srgb, var(--err-color) 30%, transparent);
+}
+.urimal-error.mode-pdf:hover {
+  background: color-mix(in srgb, var(--err-color) 45%, transparent);
+}
+.urimal-error.mode-pdf.active {
+  background: rgba(231, 76, 60, 0.45);
+}
+
+/* docx-preview 가 .docx-wrapper 안에 페이지를 일렬 배치하는데 폭이 페이지 단위로 고정이므로
+   inline-doc-body 의 좌우 padding 안에 잘 들어가도록 max-width 제한만 부여 */
+.external-render-host .docx-wrapper {
+  background: transparent;
+  padding: 0;
+}
+.external-render-host .docx-wrapper > section.docx {
+  margin-bottom: 20px;
+  background: white;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* PDF 페이지 컨테이너 */
+.external-render-host .pdf-page {
+  position: relative;
+}
+
+/* 아직 lazy 렌더 안 된 PDF 페이지 placeholder — 살짝 회색 + 회전하는 점 */
+.external-render-host .pdf-page-pending {
+  background: #fafafa;
+}
+.external-render-host .pdf-page-pending::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 3px solid #ddd;
+  border-top-color: #4a90d9;
+  border-radius: 50%;
+  animation: urimal-spin .9s linear infinite;
+}
+@keyframes urimal-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* PDF 툴바 */
+.pdf-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+  margin-right: 8px;
+}
+.pdf-page-info {
+  font-size: .8rem;
+  color: #555;
+  font-weight: 500;
+  white-space: nowrap;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 2px 10px;
+}
+.pdf-zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.pdf-zoom-btn,
+.pdf-zoom-pct {
+  border: 1px solid #ccc;
+  background: #fff;
+  cursor: pointer;
+  font-size: .8rem;
+  font-weight: 600;
+  line-height: 1;
+  transition: background .15s, border-color .15s;
+}
+.pdf-zoom-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.pdf-zoom-btn:hover {
+  background: #e8f0fe;
+  border-color: #4a90d9;
+}
+.pdf-zoom-pct {
+  padding: 4px 8px;
+  border-radius: 4px;
+  min-width: 48px;
+  text-align: center;
+  color: #333;
+}
+.pdf-zoom-pct:hover {
+  background: #e8f0fe;
+  border-color: #4a90d9;
+}
