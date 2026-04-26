@@ -7,6 +7,12 @@ import { fileURLToPath } from 'url';
 import crypto from 'crypto';
 
 import { createRequire } from 'module';
+import 'cfb';
+import 'jszip';
+import 'commander';
+import 'zod';
+import '@xmldom/xmldom';
+import 'pdfjs-dist';
 
 const require = createRequire(import.meta.url);
 const execFileAsync = promisify(execFile);
@@ -73,7 +79,7 @@ export async function parseDocument(fileBuffer, originalName) {
       maxBuffer: 16 * 1024 * 1024, // 16MB — 5MB 파일이 만드는 markdown 보다 충분히 크게
       env: {
         ...process.env,
-        NODE_PATH: (process.env.NODE_PATH ? process.env.NODE_PATH + path.delimiter : '') + path.resolve(__dirname, '..', 'node_modules')
+        NODE_PATH: (process.env.NODE_PATH ? process.env.NODE_PATH + path.delimiter : '') + path.resolve(__dirname, '..', '..', 'node_modules')
       }
     });
 
