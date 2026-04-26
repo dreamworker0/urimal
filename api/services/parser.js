@@ -71,6 +71,10 @@ export async function parseDocument(fileBuffer, originalName) {
     const { stdout } = await execFileAsync('node', [KORDOC_PATH, tmpInput], {
       timeout: 90_000, // 90초 — 50페이지 5MB 이하 파일 기준 충분
       maxBuffer: 16 * 1024 * 1024, // 16MB — 5MB 파일이 만드는 markdown 보다 충분히 크게
+      env: {
+        ...process.env,
+        NODE_PATH: (process.env.NODE_PATH ? process.env.NODE_PATH + path.delimiter : '') + path.resolve(__dirname, '..', 'node_modules')
+      }
     });
 
     return stdout;
