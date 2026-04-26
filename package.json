@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "vercel-build": "mkdir -p api/resources && cp .agents/skills/im-not-ai-for-socialworker/resources/references/*.md api/resources/ && cd frontend && npm install && npm run build"
+    "vercel-build": "cd frontend && npm install && npm run build"
   },
   "dependencies": {
     "cfb": "1.2.2",
