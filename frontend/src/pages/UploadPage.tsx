@@ -116,6 +116,8 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
           <span className="footer-divider">|</span>
           <a href="https://github.com/edwardkim/rhwp" target="_blank" rel="noreferrer">rhwp (HWP 뷰어 엔진)</a>
           <span className="footer-divider">|</span>
+          <a href="https://github.com/chrisryugj/kordoc" target="_blank" rel="noreferrer">kordoc (모든 문서 파싱)</a>
+          <span className="footer-divider">|</span>
           <a href="http://welfare.or.kr/urimal.pdf" target="_blank" rel="noreferrer">사회복지정보원 우리말 공부</a>
         </div>
       </footer>
