@@ -645,12 +645,25 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
         } else if (mode === 'docx') {
           const host = externalHostRef.current;
           if (!host) return;
-          await renderDocxAsync(new Blob([buffer]), host, undefined, {
-            inWrapper: true,
-            ignoreLastRenderedPageBreak: false,
-            experimental: false,
-            useBase64URL: true,
-          });
+          // styleContainer를 document.head로 분리: style 태그가 flex 컨테이너에
+          // 자식으로 들어가면 flex item으로 공간을 차지해 레이아웃이 깨질 수 있다.
+          const styleHost = document.createElement('div');
+          styleHost.id = 'urimal-docx-styles';
+          // 기존 스타일 컨테이너 제거 (재분석 시 중복 방지)
+          document.getElementById('urimal-docx-styles')?.remove();
+          document.head.appendChild(styleHost);
+          try {
+            await renderDocxAsync(new Blob([buffer]), host, styleHost, {
+              inWrapper: true,
+              ignoreLastRenderedPageBreak: false,
+              experimental: false,
+              useBase64URL: true,
+            });
+            console.log('[InlineDocView] DOCX 렌더 완료, children:', host.children.length);
+          } catch (docxErr) {
+            console.error('[InlineDocView] docx-preview renderAsync 실패:', docxErr);
+            throw docxErr;
+          }
           if (isCanceled()) host.innerHTML = '';
         } else if (mode === 'pdf') {
           const host = externalHostRef.current;
@@ -1024,12 +1037,17 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
           ref={externalHostRef}
           className={`external-render-host mode-${renderMode}`}
           style={{
-            display: renderMode === 'docx' || renderMode === 'pdf' ? 'flex' : 'none',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: `${20 * zoomLevel}px`,
+            display: renderMode === 'docx' || renderMode === 'pdf'
+              ? (renderMode === 'pdf' ? 'flex' : 'block')
+              : 'none',
+            ...(renderMode === 'pdf' ? {
+              flexDirection: 'column' as const,
+              alignItems: 'center' as const,
+              gap: `${20 * zoomLevel}px`,
+            } : {}),
             width: '100%',
             maxWidth: renderMode === 'pdf' ? 'none' : '820px',
+            ...(renderMode === 'docx' ? { margin: '0 auto' } : {}),
             transform: renderMode === 'pdf' ? `scale(${zoomLevel})` : undefined,
             transformOrigin: 'top center',
           }}

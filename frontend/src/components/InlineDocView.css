@@ -32,7 +32,10 @@
      렌더 크기와 다르고, 그 결과 스크롤바 길이/위치가 페이지 첫 노출마다 출렁이고
      멀리 있는 오류로 점프할 때 중간 페이지들의 placeholder 오차가 누적돼 scrollTop 이 어긋남.
    - HWP SVG 는 벡터라 모든 페이지를 한꺼번에 mount 해도 부담이 작아 단순 렌더가 안전. */
-.external-render-host .docx-wrapper > section.docx,
+/* DOCX 는 content-visibility 를 사용하지 않는다.
+   docx-preview 가 생성하는 section 은 보통 소수 페이지이고,
+   content-visibility: auto 가 flex 레이아웃과 결합되면 렌더링이 생략되어
+   빈 화면으로 보이는 버그가 발생할 수 있다. */
 .external-render-host .pdf-page {
   content-visibility: auto;
   contain-intrinsic-size: auto 1100px;
