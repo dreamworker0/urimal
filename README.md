@@ -53,14 +53,9 @@ npm run dev
 
 ## 참고 자료 및 오픈소스 (Credits & Open Source)
 
-본 프로젝트는 다음의 훌륭한 자료와 오픈소스 프로젝트들을 활용하여 제작되었습니다.
+본 서비스는 다음 자료 및 오픈소스 프로젝트를 활용하여 제작되었습니다:
 
-### 참고 자료
+* **im-not-ai**: 한글 AI 티 제거기
+* **rhwp**: HWP 뷰어 엔진
+* **kordoc**: 모든 문서 파싱
 * **사회복지정보원 우리말 공부**: [urimal.pdf](http://welfare.or.kr/urimal.pdf)
-  (사회복지 현장에서 올바른 우리말 사용을 위한 기준 자료로 활용)
-
-### 주요 오픈소스 프로젝트
-* **[@rhwp/core](https://github.com/hahnlee/rhwp)**: HWP 문서 웹 뷰어 엔진
-* **[docx-preview](https://github.com/VolodymyrBaydalka/docxjs)**: DOCX 문서 파싱 및 렌더링
-* **[pdf.js](https://github.com/mozilla/pdf.js)**: PDF 문서 파싱 
-* **[React](https://reactjs.org/) & [Vite](https://vitejs.dev/)**: 프론트엔드 UI 구축 및 빌드
