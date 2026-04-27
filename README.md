@@ -58,7 +58,7 @@ npm run dev
 ### 핵심 모듈 및 자료
 * **[im-not-ai](https://github.com/epoko77-ai/im-not-ai)**: 한글 AI 티 제거기
 * **[@rhwp/core](https://github.com/hahnlee/rhwp)**: HWP 뷰어 엔진
-* **kordoc**: 모든 문서 파싱 (HWP, DOCX, PDF 등)
+* **[kordoc](https://github.com/chrisryugj/kordoc)**: 모든 문서 파싱 (HWP, DOCX, PDF 등)
 * **[사회복지정보원 우리말 공부](http://welfare.or.kr/urimal.pdf)**: 올바른 우리말 사용 기준 자료
 
 ### 기타 활용 오픈소스
