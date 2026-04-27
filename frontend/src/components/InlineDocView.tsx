@@ -748,6 +748,26 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
     emitSortedErrors(errors, posMap, onSortedErrorsRef);
   }, [pageSvgs, errors, renderMode]);
 
+  // HWP 페이지 mount 직후 한 번 강제 레이아웃해서 contain-intrinsic-size: auto 캐시를 채운다.
+  // 이 과정 없이는 한 번도 viewport 에 들어오지 않은 페이지가 1100px placeholder 로 잡혀
+  //  - 스크롤바 길이가 페이지가 처음 보일 때마다 변동(placeholder ↔ 실제 크기)
+  //  - 멀리 있는 오류로 점프할 때 중간 페이지들의 placeholder 오차가 누적돼 scrollTop 이 어긋남
+  useEffect(() => {
+    if (renderMode !== 'hwp') return;
+    if (pageSvgs.length === 0 && pageImages.length === 0) return;
+    const body = bodyRef.current;
+    if (!body) return;
+    const raf = requestAnimationFrame(() => {
+      const pages = body.querySelectorAll<HTMLElement>('.hwp-page, .hwp-page-image');
+      if (pages.length === 0) return;
+      pages.forEach(p => { p.style.contentVisibility = 'visible'; });
+      // 동기 레이아웃 강제 → 각 페이지 실제 크기가 contain-intrinsic-size: auto 에 기록됨
+      void body.offsetHeight;
+      pages.forEach(p => { p.style.contentVisibility = ''; });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [pageSvgs, pageImages, renderMode]);
+
   // DOCX 렌더 완료 후 하이라이트 일괄 적용 (DOCX 는 한꺼번에 그려지므로 단발 처리로 충분).
   // PDF 는 페이지가 lazy 로 채워지므로 renderPdfPages 의 onPageRendered 에서 페이지별로 처리.
   useEffect(() => {
