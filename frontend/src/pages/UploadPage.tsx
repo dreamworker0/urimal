@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { analyzeFile } from '../api/analyze';
 import type { AnalyzeResult, ProgressInfo } from '../types';
+import TaxonomyModal from '../components/TaxonomyModal';
 import './UploadPage.css';
 
 const MODELS = [
@@ -21,6 +22,7 @@ const MAX_FILE_BYTES = 3 * 1024 * 1024; // 백엔드 multer 한도와 동기화
 export default function UploadPage({ onLoading, onProgress, onResult, onError, errorMsg }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const [taxonomyOpen, setTaxonomyOpen] = useState(false);
   const model = MODELS[0].value;
 
   async function handleFile(file: File) {
@@ -97,10 +99,11 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
             <h3>파일 무보관</h3>
             <p>업로드된 파일은 분석 후 즉시 삭제됩니다. 서버에 저장되지 않습니다.</p>
           </div>
-          <div className="info-card">
+          <div className="info-card info-card-clickable" onClick={() => setTaxonomyOpen(true)}>
             <span className="info-icon">📚</span>
-            <h3>사회복지정보원 우리말 기준</h3>
-            <p>사회복지 실무 현장 오류 36항목 기반으로 정밀 분석합니다.</p>
+            <h3>우리말 윤문 기준표 보기</h3>
+            <p>14개 카테고리, 60여 개 패턴 기반으로 정밀 분석합니다.</p>
+            <span className="info-card-link">기준표 보기 →</span>
           </div>
           <div className="info-card">
             <span className="info-icon">✏️</span>
@@ -123,6 +126,8 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
         </div>
         <p style={{ marginTop: '12px', color: 'var(--text-tertiary)', fontSize: '0.85em' }}>문의 : ehsheh@gmail.com</p>
       </footer>
+
+      <TaxonomyModal open={taxonomyOpen} onClose={() => setTaxonomyOpen(false)} />
     </div>
   );
 }
