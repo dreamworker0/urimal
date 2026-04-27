@@ -55,7 +55,13 @@ npm run dev
 
 본 서비스는 다음 자료 및 오픈소스 프로젝트를 활용하여 제작되었습니다:
 
-* **im-not-ai**: 한글 AI 티 제거기
-* **rhwp**: HWP 뷰어 엔진
-* **kordoc**: 모든 문서 파싱
-* **사회복지정보원 우리말 공부**: [urimal.pdf](http://welfare.or.kr/urimal.pdf)
+### 핵심 모듈 및 자료
+* **[im-not-ai](https://github.com/epoko77-ai/im-not-ai)**: 한글 AI 티 제거기
+* **[@rhwp/core](https://github.com/hahnlee/rhwp)**: HWP 뷰어 엔진
+* **kordoc**: 모든 문서 파싱 (HWP, DOCX, PDF 등)
+* **[사회복지정보원 우리말 공부](http://welfare.or.kr/urimal.pdf)**: 올바른 우리말 사용 기준 자료
+
+### 기타 활용 오픈소스
+* **[docx-preview](https://github.com/VolodymyrBaydalka/docxjs)**: DOCX 문서 웹 렌더링
+* **[pdf.js](https://github.com/mozilla/pdf.js)**: PDF 문서 파싱
+* **[React](https://reactjs.org/) & [Vite](https://vitejs.dev/)**: 프론트엔드 UI 구축 및 최적화 빌드
