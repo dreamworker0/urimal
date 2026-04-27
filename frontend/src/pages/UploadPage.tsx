@@ -52,13 +52,10 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
           <span className="logo-text">우리말 윤문 도구</span>
         </div>
         <p className="tagline">사회복지 문서 우리말 답게 쓰기 위한 윤문 도구</p>
-        
-        <div className="principles-box">
-          <p className="principles-title">이 프로그램의 목표</p>
-          <p><strong>1.</strong> 문장 성분들이, 특히 주어와 술어가, 호응하게 합니다.</p>
-          <p><strong>2.</strong> 논리가 통하게 합니다.</p>
-          <p><strong>3.</strong> 문장은 물론이고 낱말도 토씨도 실질 실용이 있게 합니다.</p>
-        </div>
+
+        <button className="taxonomy-open-btn" onClick={() => setTaxonomyOpen(true)}>
+          📚 어떤 기준으로 글을 고치나요? — 윤문 기준표 보기
+        </button>
       </header>
 
       <main className="upload-main">
@@ -92,6 +89,13 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
           />
 
         {errorMsg && <p className="error-msg">⚠️ {errorMsg}</p>}
+
+        <div className="principles-box">
+          <p className="principles-title">이 프로그램의 목표</p>
+          <p><strong>1.</strong> 문장 성분들이, 특히 주어와 술어가, 호응하게 합니다.</p>
+          <p><strong>2.</strong> 논리가 통하게 합니다.</p>
+          <p><strong>3.</strong> 문장은 물론이고 낱말도 토씨도 실질 실용이 있게 합니다.</p>
+        </div>
 
         <div className="info-cards">
           <div className="info-card">

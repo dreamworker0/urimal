@@ -44,6 +44,30 @@
   color: var(--primary);
 }
 
+/* 윤문 기준표 열기 버튼 */
+.taxonomy-open-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.2rem;
+  padding: 0.7rem 1.5rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  font-family: inherit;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1.5px solid rgba(59, 130, 246, 0.25);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.taxonomy-open-btn:hover {
+  background: rgba(59, 130, 246, 0.15);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+}
+
 .upload-main {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; padding: 3rem 1rem; gap: 2.5rem;
