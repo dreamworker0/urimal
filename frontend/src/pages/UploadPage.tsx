@@ -47,7 +47,7 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
     <div className="upload-page">
       <header className="upload-header">
         <div className="logo">
-          <span className="logo-text">사회복지정보원 우리말 공부 <span style={{ fontSize: '0.5em', color: 'var(--primary)', background: 'rgba(59, 130, 246, 0.1)', padding: '4px 8px', borderRadius: '12px', verticalAlign: 'middle', marginLeft: '6px' }}>인공지능 버전</span></span>
+          <span className="logo-text">사회복지 우리말 윤문 도구 <span style={{ fontSize: '0.5em', color: 'var(--primary)', background: 'rgba(59, 130, 246, 0.1)', padding: '4px 8px', borderRadius: '12px', verticalAlign: 'middle', marginLeft: '6px' }}>인공지능 버전</span></span>
         </div>
         <p className="tagline">사회복지 문서 우리말 답게 쓰기 위한 윤문 도구</p>
         
@@ -121,6 +121,7 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
           <span className="footer-divider">|</span>
           <a href="http://welfare.or.kr/urimal.pdf" target="_blank" rel="noreferrer">사회복지정보원 우리말 공부</a>
         </div>
+        <p style={{ marginTop: '12px', color: 'var(--text-tertiary)', fontSize: '0.85em' }}>문의 : ehsheh@gmail.com</p>
       </footer>
     </div>
   );
