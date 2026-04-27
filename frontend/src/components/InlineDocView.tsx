@@ -748,26 +748,6 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
     emitSortedErrors(errors, posMap, onSortedErrorsRef);
   }, [pageSvgs, errors, renderMode]);
 
-  // HWP 페이지 mount 직후 한 번 강제 레이아웃해서 contain-intrinsic-size: auto 캐시를 채운다.
-  // 이 과정 없이는 한 번도 viewport 에 들어오지 않은 페이지가 1100px placeholder 로 잡혀
-  //  - 스크롤바 길이가 페이지가 처음 보일 때마다 변동(placeholder ↔ 실제 크기)
-  //  - 멀리 있는 오류로 점프할 때 중간 페이지들의 placeholder 오차가 누적돼 scrollTop 이 어긋남
-  useEffect(() => {
-    if (renderMode !== 'hwp') return;
-    if (pageSvgs.length === 0 && pageImages.length === 0) return;
-    const body = bodyRef.current;
-    if (!body) return;
-    const raf = requestAnimationFrame(() => {
-      const pages = body.querySelectorAll<HTMLElement>('.hwp-page, .hwp-page-image');
-      if (pages.length === 0) return;
-      pages.forEach(p => { p.style.contentVisibility = 'visible'; });
-      // 동기 레이아웃 강제 → 각 페이지 실제 크기가 contain-intrinsic-size: auto 에 기록됨
-      void body.offsetHeight;
-      pages.forEach(p => { p.style.contentVisibility = ''; });
-    });
-    return () => cancelAnimationFrame(raf);
-  }, [pageSvgs, pageImages, renderMode]);
-
   // DOCX 렌더 완료 후 하이라이트 일괄 적용 (DOCX 는 한꺼번에 그려지므로 단발 처리로 충분).
   // PDF 는 페이지가 lazy 로 채워지므로 renderPdfPages 의 onPageRendered 에서 페이지별로 처리.
   useEffect(() => {
@@ -906,32 +886,40 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
       targetEls.forEach(el => (el as HTMLElement).classList.add('active'));
     }
 
-    // 스크롤: 정확한 좌표 측정을 위한 전처리
     const first = targetEls[0] as HTMLElement | SVGGraphicsElement;
-
-    // HWP: content-visibility: auto 일시 해제 → 정확한 좌표 측정
-    let hwpPage: HTMLElement | null = null;
-    if (renderMode === 'hwp') {
-      hwpPage = (first as HTMLElement).closest?.('.hwp-page') as HTMLElement | null;
-      if (hwpPage) {
-        hwpPage.style.contentVisibility = 'visible';
-      }
-    }
 
     // PDF: zoom(scale)이 적용되어 있으므로 좌표 보정 필요
     const zoom = renderMode === 'pdf' ? zoomLevel : 1;
-    const elRect = first.getBoundingClientRect();
-    const cRect = container.getBoundingClientRect();
-    const scrollOffset = (elRect.top - cRect.top) / zoom;
-    const elH = elRect.height / zoom;
-    const scrollTarget =
-      container.scrollTop + scrollOffset - container.clientHeight / 2 + elH / 2;
-    container.scrollTo({ top: Math.max(0, scrollTarget), behavior: 'smooth' });
 
-    // HWP: content-visibility 복원
-    if (hwpPage) {
-      setTimeout(() => { hwpPage!.style.contentVisibility = ''; }, 600);
-    }
+    // 스크롤은 3단계로 나눠 진행한다. 한 번의 scrollTo 만으로는 도중에 layout shift
+    // (폰트/이미지 늦은 로드, content-visibility 전환, transform 변환 등) 가 일어나면
+    // 타겟이 어긋나므로 단계별 재측정으로 누적 오차를 흡수한다.
+    //
+    //  1) scrollIntoView({block:'center', behavior:'auto'}):
+    //     브라우저가 직접 layout 을 trigger 하면서 대상 요소를 화면에 일단 넣음.
+    //     content-visibility 나 lazy 렌더가 있더라도 여기서 강제로 layout 됨.
+    //  2) 다음 프레임에 좌표를 다시 측정해 컨테이너를 정확히 중앙으로 보정.
+    //  3) 폰트/이미지 늦은 로드로 layout 이 또 흔들릴 수 있어 짧은 딜레이 후 한 번 더 보정.
+    const computeTarget = (): number => {
+      const elRect = first.getBoundingClientRect();
+      const cRect = container.getBoundingClientRect();
+      const scrollOffset = (elRect.top - cRect.top) / zoom;
+      const elH = elRect.height / zoom;
+      return Math.max(
+        0,
+        container.scrollTop + scrollOffset - container.clientHeight / 2 + elH / 2
+      );
+    };
+    (first as Element).scrollIntoView({ block: 'center', behavior: 'auto' });
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        container.scrollTo({ top: computeTarget(), behavior: 'smooth' });
+        // 늦은 layout shift(폰트/이미지) 대비 한 번 더 보정. 동일 위치면 사실상 no-op.
+        window.setTimeout(() => {
+          container.scrollTo({ top: computeTarget(), behavior: 'smooth' });
+        }, 350);
+      });
+    });
   }, [activeId, errors, renderMode, zoomLevel]);
 
   // PDF 현재 페이지 감지 (IntersectionObserver)
