@@ -51,4 +51,3 @@ npm install
 npm run dev
 ```
 
-이제 브라우저에서 `http://localhost:5173` 으로 접속하여 앱을 확인할 수 있습니다.
