@@ -53,9 +53,14 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
         </div>
         <p className="tagline">사회복지 문서 우리말 답게 쓰기 위한 윤문 도구</p>
 
-        <button className="taxonomy-open-btn" onClick={() => setTaxonomyOpen(true)}>
-          📚 어떤 기준으로 글을 고치나요? — 윤문 기준표 보기
-        </button>
+        <div className="header-actions">
+          <button className="taxonomy-open-btn" onClick={() => setTaxonomyOpen(true)}>
+            📚 어떤 기준으로 글을 고치나요? — 윤문 기준표 보기
+          </button>
+          <a href="https://github.com/dreamworker0/urimal-for-socialworker" target="_blank" rel="noreferrer" className="taxonomy-open-btn">
+            🤖 클로드 코워크(Claude Cowork) 사용 안내
+          </a>
+        </div>
       </header>
 
       <main className="upload-main">

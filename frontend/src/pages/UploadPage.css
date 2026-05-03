@@ -44,12 +44,21 @@
   color: var(--primary);
 }
 
-/* 윤문 기준표 열기 버튼 */
+/* 헤더 액션 버튼 컨테이너 */
+.header-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.2rem;
+  flex-wrap: wrap;
+}
+
+/* 윤문 기준표 열기 버튼 및 코워크 링크 */
 .taxonomy-open-btn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 1.2rem;
   padding: 0.7rem 1.5rem;
   font-size: 0.95rem;
   font-weight: 600;
@@ -59,6 +68,7 @@
   border: 1.5px solid rgba(59, 130, 246, 0.25);
   border-radius: 10px;
   cursor: pointer;
+  text-decoration: none;
   transition: all 0.2s ease;
 }
 .taxonomy-open-btn:hover {
