@@ -122,7 +122,7 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
       <footer className="upload-footer">
         <div style={{ marginBottom: '2rem' }}>
           <a href="https://github.com/dreamworker0/urimal-for-socialworker" target="_blank" rel="noreferrer" className="taxonomy-open-btn">
-            🤖 클로드 코워크(Claude Cowork) 사용 안내
+            🤖 클로드 스킬 공유
           </a>
         </div>
         <p>본 서비스는 다음 자료 및 오픈소스 프로젝트를 활용하여 제작되었습니다:</p>
