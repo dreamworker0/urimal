@@ -57,9 +57,6 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
           <button className="taxonomy-open-btn" onClick={() => setTaxonomyOpen(true)}>
             📚 어떤 기준으로 글을 고치나요? — 윤문 기준표 보기
           </button>
-          <a href="https://github.com/dreamworker0/urimal-for-socialworker" target="_blank" rel="noreferrer" className="taxonomy-open-btn">
-            🤖 클로드 코워크(Claude Cowork) 사용 안내
-          </a>
         </div>
       </header>
 
@@ -123,6 +120,11 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
       </main>
 
       <footer className="upload-footer">
+        <div style={{ marginBottom: '2rem' }}>
+          <a href="https://github.com/dreamworker0/urimal-for-socialworker" target="_blank" rel="noreferrer" className="taxonomy-open-btn">
+            🤖 클로드 코워크(Claude Cowork) 사용 안내
+          </a>
+        </div>
         <p>본 서비스는 다음 자료 및 오픈소스 프로젝트를 활용하여 제작되었습니다:</p>
         <div className="footer-links">
           <a href="https://github.com/epoko77-ai/im-not-ai/" target="_blank" rel="noreferrer">im-not-ai ( 한글 AI 티 제거기)</a>
