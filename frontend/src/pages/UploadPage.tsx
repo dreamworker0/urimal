@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { analyzeFile } from '../api/analyze';
+import { analyzeFile, analyzeText } from '../api/analyze';
 import type { AnalyzeResult, ProgressInfo } from '../types';
 import TaxonomyModal from '../components/TaxonomyModal';
 import './UploadPage.css';
@@ -23,6 +23,8 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [taxonomyOpen, setTaxonomyOpen] = useState(false);
+  const [inputMode, setInputMode] = useState<'file' | 'text'>('file');
+  const [textInput, setTextInput] = useState('');
   const model = MODELS[0].value;
 
   async function handleFile(file: File) {
@@ -45,6 +47,25 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
     }
   }
 
+  async function handleTextSubmit() {
+    if (!textInput.trim()) {
+      onError('분석할 텍스트를 입력해주세요.');
+      return;
+    }
+    if (textInput.trim().length < 10) {
+      onError('분석할 텍스트가 너무 짧습니다. (10자 이상)');
+      return;
+    }
+    onLoading();
+    try {
+      const fakeFile = new File(['text_input'], 'pasted_text.txt', { type: 'text/plain' });
+      const result = await analyzeText(textInput, model, onProgress);
+      onResult(result, fakeFile);
+    } catch (e: unknown) {
+      onError(e instanceof Error ? e.message : '알 수 없는 오류');
+    }
+  }
+
   return (
     <div className="upload-page">
       <header className="upload-header">
@@ -61,34 +82,65 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
       </header>
 
       <main className="upload-main">
-        <div
-          className={`drop-zone ${dragging ? 'dragging' : ''}`}
-          onClick={() => inputRef.current?.click()}
-          onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-          onDragLeave={() => setDragging(false)}
-          onDrop={(e) => {
-            e.preventDefault();
-            setDragging(false);
-            const file = e.dataTransfer.files[0];
-            if (file) handleFile(file);
-          }}
-        >
-          <div className="drop-icon">📄</div>
-          <p className="drop-title">파일을 여기에 끌어다 놓거나 클릭하세요</p>
-          <p className="drop-hint">HWP · HWPX · DOCX · PDF · 최대 30페이지 / 3MB</p>
-          <div className="upload-btn">컴퓨터에서 찾아보기</div>
+        <div className="input-mode-tabs">
+          <button 
+            className={`tab-btn ${inputMode === 'file' ? 'active' : ''}`} 
+            onClick={() => setInputMode('file')}
+          >
+            📄 파일 첨부
+          </button>
+          <button 
+            className={`tab-btn ${inputMode === 'text' ? 'active' : ''}`} 
+            onClick={() => setInputMode('text')}
+          >
+            ✍️ 텍스트 붙여넣기
+          </button>
         </div>
 
-          <input
-            ref={inputRef}
-            type="file"
-            accept=".hwp,.hwpx,.docx,.pdf"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handleFile(file);
-            }}
-          />
+        {inputMode === 'file' ? (
+          <>
+            <div
+              className={`drop-zone ${dragging ? 'dragging' : ''}`}
+              onClick={() => inputRef.current?.click()}
+              onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragging(false);
+                const file = e.dataTransfer.files[0];
+                if (file) handleFile(file);
+              }}
+            >
+              <div className="drop-icon">📄</div>
+              <p className="drop-title">파일을 여기에 끌어다 놓거나 클릭하세요</p>
+              <p className="drop-hint">HWP · HWPX · DOCX · PDF · 최대 30페이지 / 3MB</p>
+              <div className="upload-btn">컴퓨터에서 찾아보기</div>
+            </div>
+
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".hwp,.hwpx,.docx,.pdf"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) handleFile(file);
+              }}
+            />
+          </>
+        ) : (
+          <div className="text-input-zone">
+            <textarea
+              className="text-input-area"
+              placeholder="여기에 윤문할 텍스트를 붙여넣으세요..."
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+            />
+            <button className="upload-btn" onClick={handleTextSubmit}>
+              분석 시작
+            </button>
+          </div>
+        )}
 
         {errorMsg && <p className="error-msg">⚠️ {errorMsg}</p>}
 

@@ -60,7 +60,6 @@ const upload = multer({
 // multer 의 fileFilter / limits 위반은 4xx 로 응답하도록 래핑한다.
 function handleUpload(req, res, next) {
   upload.single('file')(req, res, (err) => {
-    if (!err) return next();
     if (err instanceof multer.MulterError) {
       const error = new Error(
         err.code === 'LIMIT_FILE_SIZE'
@@ -70,44 +69,67 @@ function handleUpload(req, res, next) {
       error.status = 413;
       return next(error);
     }
-    err.status = 400;
-    return next(err);
+    if (err) {
+      err.status = 400;
+      return next(err);
+    }
+    next();
   });
 }
 
 /**
  * POST /api/analyze
- * 파일 업로드 → 파싱 → Gemini 윤문 → 결과 반환
+ * 파일 업로드 또는 텍스트 입력 → 파싱(파일인 경우) → Gemini 윤문 → 결과 반환
  */
 router.post('/', analyzeLimiter, handleUpload, async (req, res, next) => {
-  if (!req.file) {
-    const err = new Error('파일이 없습니다.');
+  const hasFile = !!req.file;
+  const hasText = !!req.body.text;
+
+  if (!hasFile && !hasText) {
+    const err = new Error('파일 또는 텍스트 입력이 필요합니다.');
     err.status = 400;
     return next(err);
   }
 
   try {
-    const filename = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
-
-    // 2단계: 캐시 키 생성 (파일 내용 해시 + 요청 모델명)
-    const fileHash = crypto.createHash('md5').update(req.file.buffer).digest('hex');
     const requestedModel = (req.body?.model || '').trim();
     const selectedModel = ALLOWED_MODELS.has(requestedModel) ? requestedModel : DEFAULT_MODEL;
+
+    let filename = 'pasted_text.txt';
+    let contentForHash = '';
+    let markdownText = '';
+    let fileSize = 0;
+
+    if (hasFile) {
+      filename = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+      contentForHash = req.file.buffer;
+      fileSize = req.file.size;
+    } else {
+      contentForHash = req.body.text;
+      fileSize = Buffer.byteLength(req.body.text, 'utf8');
+    }
+
+    // 2단계: 캐시 키 생성 (내용 해시 + 요청 모델명)
+    const fileHash = crypto.createHash('md5').update(contentForHash).digest('hex');
     const cacheKey = `${fileHash}_${selectedModel}`;
 
     const cachedResult = resultCache.get(cacheKey);
     if (cachedResult) {
-      console.log(`[캐시 적중] ${filename} (${req.file.size} bytes)`);
+      console.log(`[캐시 적중] ${filename} (${fileSize} bytes)`);
       return res.json(cachedResult);
     }
 
-    console.log(`[분석 시작] ${filename} (${req.file.size} bytes)`);
+    console.log(`[분석 시작] ${filename} (${fileSize} bytes)`);
 
-    // 문서 파싱 (kordoc)
-    const markdownText = await parseDocument(req.file.buffer, req.file.originalname);
+    // 문서 파싱 (kordoc 또는 직접 텍스트)
+    if (hasFile) {
+      markdownText = await parseDocument(req.file.buffer, req.file.originalname);
+    } else {
+      markdownText = req.body.text;
+    }
 
     if (!markdownText || markdownText.trim().length < 10) {
-      const err = new Error('문서에서 텍스트를 추출할 수 없습니다.');
+      const err = new Error('문서에서 텍스트를 추출할 수 없거나 내용이 너무 짧습니다.');
       err.status = 422;
       return next(err);
     }

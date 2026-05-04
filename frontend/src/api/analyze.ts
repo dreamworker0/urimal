@@ -10,6 +10,24 @@ export async function analyzeFile(
   const formData = new FormData();
   formData.append('file', file);
   formData.append('model', model);
+  return sendAnalyzeRequest(formData, onProgress);
+}
+
+export async function analyzeText(
+  text: string, 
+  model: string,
+  onProgress?: (info: ProgressInfo) => void
+): Promise<AnalyzeResult> {
+  const formData = new FormData();
+  formData.append('text', text);
+  formData.append('model', model);
+  return sendAnalyzeRequest(formData, onProgress);
+}
+
+async function sendAnalyzeRequest(
+  formData: FormData,
+  onProgress?: (info: ProgressInfo) => void
+): Promise<AnalyzeResult> {
 
   let response: Response;
   try {
