@@ -58,7 +58,7 @@ export default function UploadPage({ onLoading, onProgress, onResult, onError, e
     }
     onLoading();
     try {
-      const fakeFile = new File(['text_input'], 'pasted_text.txt', { type: 'text/plain' });
+      const fakeFile = new File([textInput], 'pasted_text.txt', { type: 'text/plain' });
       const result = await analyzeText(textInput, model, onProgress);
       onResult(result, fakeFile);
     } catch (e: unknown) {

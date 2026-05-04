@@ -45,7 +45,7 @@ window.measureTextWidth = globalThis.measureTextWidth = (font: string, text: str
   return 0;
 };
 
-type RenderMode = 'idle' | 'hwp' | 'docx' | 'pdf';
+type RenderMode = 'idle' | 'hwp' | 'docx' | 'pdf' | 'txt';
 
 interface Props {
   file?: File | null;
@@ -60,6 +60,7 @@ function detectMode(file: File): RenderMode {
   if (ext === 'hwp' || ext === 'hwpx') return 'hwp';
   if (ext === 'docx') return 'docx';
   if (ext === 'pdf') return 'pdf';
+  if (ext === 'txt') return 'txt';
   return 'idle';
 }
 
@@ -216,7 +217,7 @@ function applyHtmlHighlights(
   container: HTMLElement,
   errors: ErrorItem[],
   onSelectRef: { current: ((id: number) => void) | undefined },
-  mode: 'docx' | 'pdf',
+  mode: 'docx' | 'pdf' | 'txt',
 ): Map<number, number> {
   const positionMap = new Map<number, number>(); // errorId → 문서 내 위치 인덱스
 
@@ -665,6 +666,24 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
             throw docxErr;
           }
           if (isCanceled()) host.innerHTML = '';
+        } else if (mode === 'txt') {
+          const host = externalHostRef.current;
+          if (!host) return;
+          const text = new TextDecoder('utf-8').decode(buffer);
+          if (isCanceled()) return;
+          const pre = document.createElement('pre');
+          pre.style.whiteSpace = 'pre-wrap';
+          pre.style.wordBreak = 'break-word';
+          pre.style.fontFamily = 'inherit';
+          pre.style.fontSize = '14px';
+          pre.style.lineHeight = '1.6';
+          pre.style.padding = '40px';
+          pre.style.margin = '0 auto';
+          pre.style.maxWidth = '800px';
+          pre.style.backgroundColor = 'white';
+          pre.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+          pre.textContent = text;
+          host.appendChild(pre);
         } else if (mode === 'pdf') {
           const host = externalHostRef.current;
           if (!host) return;
@@ -761,15 +780,14 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
     emitSortedErrors(errors, posMap, onSortedErrorsRef);
   }, [pageSvgs, errors, renderMode]);
 
-  // DOCX 렌더 완료 후 하이라이트 일괄 적용 (DOCX 는 한꺼번에 그려지므로 단발 처리로 충분).
-  // PDF 는 페이지가 lazy 로 채워지므로 renderPdfPages 의 onPageRendered 에서 페이지별로 처리.
+  // DOCX / TXT 렌더 완료 후 하이라이트 일괄 적용 (단발 처리로 충분).
   useEffect(() => {
-    if (renderMode !== 'docx') return;
+    if (renderMode !== 'docx' && renderMode !== 'txt') return;
     if (loading) return;
     const host = externalHostRef.current;
     if (!host) return;
     if (host.children.length === 0) return;
-    const posMap = applyHtmlHighlights(host, errors, onSelectRef, 'docx');
+    const posMap = applyHtmlHighlights(host, errors, onSelectRef, renderMode);
     emitSortedErrors(errors, posMap, onSortedErrorsRef);
   }, [loading, errors, renderMode]);
 
@@ -972,6 +990,7 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
   const headerLabel =
     renderMode === 'docx' ? '📄 DOCX 원본 문서 뷰어'
     : renderMode === 'pdf' ? '📄 PDF 원본 문서 뷰어'
+    : renderMode === 'txt' ? '📄 텍스트 입력 원본 뷰어'
     : '📄 HWP 원본 문서 뷰어';
   const headerHint =
     renderMode === 'hwp'
@@ -1037,7 +1056,7 @@ export default function InlineDocView({ file, errors = [], activeId, onSelect, o
           ref={externalHostRef}
           className={`external-render-host mode-${renderMode}`}
           style={{
-            display: renderMode === 'docx' || renderMode === 'pdf'
+            display: renderMode === 'docx' || renderMode === 'pdf' || renderMode === 'txt'
               ? (renderMode === 'pdf' ? 'flex' : 'block')
               : 'none',
             ...(renderMode === 'pdf' ? {
