@@ -6,6 +6,7 @@ import rateLimit from 'express-rate-limit';
 import NodeCache from 'node-cache';
 import { parseDocument } from '../services/parser.js';
 import { analyzeDocument } from '../services/gemini.js';
+import { recordUsage, visitorHash } from '../services/usageLog.js';
 
 const router = express.Router();
 
@@ -77,6 +78,17 @@ function handleUpload(req, res, next) {
   });
 }
 
+// 오류 목록에서 세부 카테고리(SW-01-A 등)별 건수를 센다. 관리자 통계에서
+// "어떤 유형의 잘못된 표현이 많이 잡히는가"를 보기 위한 것으로, 본문은 담지 않는다.
+function countCategories(errors) {
+  const counts = {};
+  for (const e of errors ?? []) {
+    const key = String(e?.category || '미분류').trim();
+    counts[key] = (counts[key] || 0) + 1;
+  }
+  return counts;
+}
+
 /**
  * POST /api/analyze
  * 파일 업로드 또는 텍스트 입력 → 파싱(파일인 경우) → Gemini 윤문 → 결과 반환 (SSE 스트리밍)
@@ -84,6 +96,7 @@ function handleUpload(req, res, next) {
 router.post('/', analyzeLimiter, handleUpload, async (req, res, next) => {
   const hasFile = !!req.file;
   const hasText = !!req.body.text;
+  const requestStart = Date.now();
 
   if (!hasFile && !hasText) {
     const err = new Error('파일 또는 텍스트 입력이 필요합니다.');

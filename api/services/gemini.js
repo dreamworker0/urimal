@@ -177,6 +177,7 @@ ${chunkText}
       },
     });
 
+    const usage = readUsage(result.response);
     const raw = result.response.text();
     const cleaned = raw
       .replace(/^```json\s*/i, '')
@@ -186,21 +187,42 @@ ${chunkText}
 
     try {
       const parsed = JSON.parse(cleaned);
-      return { errors: parsed.errors ?? [], truncated: false, failed: false };
+      return { errors: parsed.errors ?? [], truncated: false, failed: false, usage };
     } catch {
       const recovered = recoverPartialErrors(cleaned);
       console.warn(
         `[청크 ${chunkIdx + 1}/${totalChunks}] JSON 절단 — ${recovered.length}건 부분 복구`
       );
-      return { errors: recovered, truncated: true, failed: false };
+      return { errors: recovered, truncated: true, failed: false, usage };
     }
   } catch (err) {
     console.error(
       `[청크 ${chunkIdx + 1}/${totalChunks}] 분석 실패:`,
       err.message || err
     );
-    return { errors: [], truncated: false, failed: true };
+    return { errors: [], truncated: false, failed: true, usage: emptyUsage() };
   }
+}
+
+function emptyUsage() {
+  return { promptTokens: 0, outputTokens: 0, thoughtsTokens: 0, totalTokens: 0 };
+}
+
+// Gemini 응답의 usageMetadata 를 읽어 토큰 사용량을 뽑아낸다.
+// 필드가 없는 응답(구버전·오류 응답)도 있으므로 전부 0 으로 방어한다.
+function readUsage(response) {
+  const m = response?.usageMetadata;
+  if (!m) return emptyUsage();
+  const prompt = m.promptTokenCount ?? 0;
+  const output = m.candidatesTokenCount ?? 0;
+  const thoughts = m.thoughtsTokenCount ?? 0;
+  return {
+    promptTokens: prompt,
+    outputTokens: output,
+    thoughtsTokens: thoughts,
+    // totalTokenCount 가 없으면 직접 합산 (thinking 토큰이 total 에 포함되지 않는 경우 대비)
+    totalTokens: m.totalTokenCount ?? prompt + output + thoughts,
+  };
 }
 
 // 공백·구두점 차이를 흡수해 청크 경계의 동일 패턴을 더 잘 잡아낸다.
@@ -217,10 +239,16 @@ function mergeChunkResults(chunkResults) {
   let id = 1;
   let truncatedCount = 0;
   let failedCount = 0;
+  const usage = emptyUsage();
 
   for (const cr of chunkResults) {
     if (cr.truncated) truncatedCount++;
     if (cr.failed) failedCount++;
+    // 청크별 토큰을 문서 단위로 합산
+    usage.promptTokens += cr.usage?.promptTokens ?? 0;
+    usage.outputTokens += cr.usage?.outputTokens ?? 0;
+    usage.thoughtsTokens += cr.usage?.thoughtsTokens ?? 0;
+    usage.totalTokens += cr.usage?.totalTokens ?? 0;
     for (const e of cr.errors ?? []) {
       // 청크 경계에서 같은 패턴이 양쪽에 잡히는 경우 흡수.
       // 공백/구두점만 다른 동일 표현은 한 건으로 본다.
@@ -231,7 +259,7 @@ function mergeChunkResults(chunkResults) {
     }
   }
 
-  return { errors, truncatedCount, failedCount };
+  return { errors, truncatedCount, failedCount, usage };
 }
 
 // errors 를 원문에 순서대로 적용해 윤문 본문을 만든다.
@@ -304,7 +332,11 @@ export async function analyzeDocument(documentText, model = 'gemini-3-flash-prev
   );
   const elapsedSec = Math.round((Date.now() - t0) / 1000);
 
-  const { errors, truncatedCount, failedCount } = mergeChunkResults(chunkResults);
+  const { errors, truncatedCount, failedCount, usage } = mergeChunkResults(chunkResults);
+
+  console.log(
+    `[토큰] 입력 ${usage.promptTokens} · 출력 ${usage.outputTokens} · 사고 ${usage.thoughtsTokens} · 합계 ${usage.totalTokens}`
+  );
 
   console.log(
     `[청크 완료] ${chunks.length}개 청크 처리 (${elapsedSec}s) — 병합 후 오류 ${errors.length}건` +
@@ -339,6 +371,8 @@ export async function analyzeDocument(documentText, model = 'gemini-3-flash-prev
     rewritten,
     errors,
     stats,
+    // 관리자 통계용 — 사용자 응답에는 실어 보내지 않는다 (routes/analyze.js 에서 분리).
+    usage: { ...usage, chunkCount: chunks.length, durationMs: Date.now() - t0 },
     ...(truncatedCount || failedCount
       ? { partial: { truncatedCount, failedCount, totalChunks: chunks.length } }
       : {}),
